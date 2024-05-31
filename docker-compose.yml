@@ -1,0 +1,69 @@
+services:
+
+  # Documentation for Kafka-related Docker images by Confluent:
+  # https://docs.confluent.io/platform/current/installation/docker/config-reference.html
+  # https://docs.confluent.io/platform/current/installation/versions-interoperability.html (versions info)
+
+  # logging configuration
+  # https://docs.confluent.io/platform/current/installation/docker/operations/logging.html
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.2
+    container_name: zookeeper
+    ports:
+      - '${PORT_ZOOKEEPER:-2181}:2181'
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    environment:
+      ZOOKEEPER_CLIENT_PORT: '2181'
+      ZOOKEEPER_LOG4J_ROOT_LOGLEVEL: 'WARN' # optional, reduces verbosity
+
+  broker:
+    image: confluentinc/cp-kafka:7.3.2
+    container_name: broker
+    depends_on:
+      - zookeeper
+    ports:
+      - '${PORT_BROKER:-29092}:29092'
+    volumes:
+      - broker-data:/var/lib/kafka/data
+    environment:
+      KAFKA_BROKER_ID: '1'
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENERS: 'INTERNAL://broker:9092,EXTERNAL://broker:29092'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://broker:9092,EXTERNAL://localhost:${PORT_BROKER:-29092}'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1' # this and next 3 options set to 1 as we have only one broker
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: '1'
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: '60000' # check whether to delete log segments ever minute (default 5 minutes)
+      KAFKA_LOG4J_ROOT_LOGLEVEL: 'WARN' # optional, with next option reduces verboseness
+      KAFKA_LOG4J_LOGGERS: "\
+        kafka=WARN,\
+        kafka.controller=WARN,\
+        kafka.log.LogCleaner=WARN,\
+        state.change.logger=WARN,\
+        kafka.producer.async.DefaultEventHandler=WARN"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.6.1
+    container_name: kafka-ui
+    ports:
+      - '${PORT_KAFKA_UI:-28080}:8080'
+    depends_on:
+      - zookeeper
+      - broker
+    environment:
+      KAFKA_CLUSTERS_0_NAME: 'Trades' # name shown in UI (Kafka UI can display multiple clusters)
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'broker:9092'
+      KAFKA_CLUSTERS_0_ZOOKEEPER: 'zookeeper:2181'
+      LOGGING_LEVEL_ROOT: 'WARN' # optional, along with next option reduces verbosity
+      LOGGING_LEVEL_COM_PROVECTUS: 'WARN'
+
+volumes:
+  zookeeper-data:
+  zookeeper-logs:
+  broker-data:
