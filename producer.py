@@ -53,11 +53,10 @@ logger = logging.getLogger(__name__)
 
 # Kafka configuration
 kafka_bootstrap_servers = 'localhost:29092'
-kafka_input_topic = 'input'
-#kafka_output_topic = 'output'
+kafka_topic = 'trades'
 
 # Set up Kafka topics
-setup_topic(kafka_input_topic, kafka_bootstrap_servers)
+setup_topic(kafka_topic, kafka_bootstrap_servers)
 #setup_topic(kafka_output_topic, kafka_bootstrap_servers)
 
 # Finnhub WebSocket configuration
